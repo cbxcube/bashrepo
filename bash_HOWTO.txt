@@ -1,0 +1,128 @@
+SOURCE : 
+
+1. BASH Programming - Introduction HOW-TO : http://tldp.org/HOWTO/Bash-Prog-Intro-HOWTO.html#toc4
+
+2. Advanced Bash-Scripting Guide : http://tldp.org/LDP/abs/html/
+
+#################### NOTES - Cubic #######################################
+
+http://tldp.org/HOWTO/Bash-Prog-Intro-HOWTO-3.htm://twitter.com/tkalghanim?lang=en  
+ There are 3 file descriptors, stdin, stdout and stderr (std=standard).
+
+Basically you can:
+
+    redirect stdout to a file
+    redirect stderr to a file
+    redirect stdout to a stderr
+    redirect stderr to a stdout
+    redirect stderr and stdout to a file
+    redirect stderr and stdout to stdout
+    redirect stderr and stdout to stderr
+
+1 'represents' stdout and 2 stderr. 
+
+ A little note for seeing this things: with the less command you can view both stdout (which will remain on the buffer) and the stderr that will be printed on the screen, but erased as you try to 'browse' the buffer.
+3.2 Sample: stdout 2 file
+
+This will cause the ouput of a program to be written to a file.
+
+            ls -l > ls-l.txt
+            
+
+Here, a file called 'ls-l.txt' will be created and it will contain what you would see on the screen if you type the command 'ls -l' and execute it.
+3.3 Sample: stderr 2 file
+
+This will cause the stderr ouput of a program to be written to a file.
+
+            grep da * 2> grep-errors.txt
+            
+
+Here, a file called 'grep-errors.txt' will be created and it will contain what you would see the stderr portion of the output of the 'grep da *' command.
+3.4 Sample: stdout 2 stderr
+
+This will cause the stderr ouput of a program to be written to the same filedescriptor than stdout.
+
+            grep da * 1>&2 
+            
+
+Here, the stdout portion of the command is sent to stderr, you may notice that in differen ways.
+3.5 Sample: stderr 2 stdout
+
+This will cause the stderr ouput of a program to be written to the same filedescriptor than stdout.
+
+            grep * 2>&1
+            
+
+Here, the stderr portion of the command is sent to stdout, if you pipe to less, you'll see that lines that normally 'dissapear' (as they are written to stderr) are being kept now (because they're on stdout).
+3.6 Sample: stderr and stdout 2 file
+
+This will place every output of a program to a file. This is suitable sometimes for cron entries, if you want a command to pass in absolute silence.
+
+            rm -f $(find / -name core) &> /dev/null 
+            
+
+This (thinking on the cron entry) will delete every file called 'core' in any directory. Notice that you should be pretty sure of what a command is doing if you are going to wipe it's output. 
+
+
+
+
+* * *
+
+The sha-bang (	#!) [1] at the head of a script tells your system that this file is a set of commands to be fed to the command interpreter indicated. The #! is actually a two-byte [2] magic number, a special marker that designates a file type, or in this case an executable shell script (type man magic for more details on this fascinating topic). Immediately following the sha-bang is a path name. This is the path to the program that interprets the commands in the script, whether it be a shell, a programming language, or a utility. This command interpreter then executes the commands in the script, starting at the top (the line following the sha-bang line), and ignoring comments. [3]
+
+#!/bin/sh
+#!/bin/bash
+#!/usr/bin/perl
+#!/usr/bin/tcl
+#!/bin/sed -f
+#!/bin/awk -f
+
+Note again that #!/bin/sh invokes the default shell interpreter, which defaults to /bin/bash on a Linux machine. Symlink : 
+# ll /bin/sh 
+lrwxrwxrwx 1 root root 4 Jan 24  2017 /bin/sh -> dash
+
+Script may begin with a #!/bin/env bash sha-bang line. This may be useful on UNIX machines where bash is not located in /bin
+
+If Bash is your default shell, then the #! isn't necessary at the beginning of a script. However, if launching a script from a different shell, such as tcsh, then you will need the #!.
+
+* * *
+
+ The for loop is a little bit different from other programming languages. Basically, it let's you iterate over a series of 'words' within a string.
+
+The while executes a piece of code if the control expression is true, and only stops when it is false (or a explicit break is found within the executed code.
+
+The until loop is almost equal to the while loop, except that the code is executed while the control expression evaluates to false.
+
+If you suspect that while and until are very similar you are right. 
+
+* * *
+
+ Conditionals have many forms. The most basic form is: if expression then statement where 'statement' is only executed if 'expression' evaluates to true. '2<1' is an expresion that evaluates to false, while '2>1' evaluates to true.xs
+
+Conditionals have other forms such as: if expression then statement1 else statement2. Here 'statement1' is executed if 'expression' is true,otherwise 'statement2' is executed.
+
+Yet another form of conditionals is: if expression1 then statement1 else if expression2 then statement2 else statement3. In this form there's added only the "ELSE IF 'expression2' THEN 'statement2'" which makes statement2 being executed if expression2 evaluates to true. The rest is as you may imagine (see previous forms).
+
+A word about syntax:
+
+The base for the 'if' constructions in bash is this:
+
+if [expression];
+
+then
+
+code if 'expression' is true.
+
+fi 
+
+
+* * *
+
+
+* * *
+
+
+* * *
+
+
+* * *

@@ -1,0 +1,20 @@
+#!/bin/bash
+# 
+# Runs GUI menu and perform command in terminal
+# It accepts argumments consisting of 2 collon 
+# sepparated values, first is item display name
+# second is command to run. If only one value
+# is provided it is used for both purposses.
+# 
+# Prerequisite :
+#	 apt-get install 9menu
+# 
+# Syntax:
+#    9menu operation1:command1 operation2:command2  
+#
+# Example:
+#    9menu fs_usage:df run_time:uptime timenow:date 
+
+
+9menu df uptime who last browser:iceweasel terminal:gnome-terminal xuptime:"xterm -hold -e /bin/bash -l -c "uptime""
+

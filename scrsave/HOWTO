@@ -1,0 +1,5 @@
+xwd -root | xwdtopnm | pnmtopng > capture.png
+
+ xwd | convert - capture.png
+or 
+ xwd | xwdtopnm | pnmtopng > capture.png

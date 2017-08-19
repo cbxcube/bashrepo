@@ -1,0 +1,102 @@
+<p><b>The open items on Cubic's ToDo List are as follows:</b></p>
+<p></p>
+<table border="2">
+  <tr>
+    <td>3</td>
+    <td>Test various editors for and check the syntax highlighting</td>
+  </tr>
+  <tr>
+    <td>4</td>
+    <td>Choose your favorite WSGI-Framework</td>
+  </tr>
+  <tr>
+    <td>5</td>
+    <td>skuska noveho tasku</td>
+  </tr>
+  <tr>
+    <td>6</td>
+    <td>udelat AngularJS todo list !</td>
+  </tr>
+  <tr>
+    <td>7</td>
+    <td>udelat Flask todo/shopping list - python</td>
+  </tr>
+  <tr>
+    <td>9</td>
+    <td>cfg2html pracovne vcs clustery !</td>
+  </tr>
+  <tr>
+    <td>10</td>
+    <td>Spectrum PROD cluster - operations manual - hcl</td>
+  </tr>
+  <tr>
+    <td>11</td>
+    <td>Najst si novy byt</td>
+  </tr>
+  <tr>
+    <td>12</td>
+    <td>code.tutsplus.com/tutorials/creating-a-web-app-from-scratch-using-python-flask-and-mysql--cm-22972</td>
+  </tr>
+  <tr>
+    <td>13</td>
+    <td>watch - http://pyvideo.org/</td>
+  </tr>
+  <tr>
+    <td>14</td>
+    <td>pyanywhere tutorial - https://blog.pythonanywhere.com/121/</td>
+  </tr>
+  <tr>
+    <td>15</td>
+    <td>pyanywhere consoles - https://www.pythonanywhere.com</td>
+  </tr>
+  <tr>
+    <td>16</td>
+    <td>DEV:: /home/cubic/Dropbox/scripts/bash/get_wlan_power.sh - Finalize loop over wlan0-9 only</td>
+  </tr>
+  <tr>
+    <td>17</td>
+    <td>FIN:: Ceska Poistovna - Vypoved zmluvy ? Daval som? Sinkyrikova ju tlacila (owncloud/invest/conseq)</td>
+  </tr>
+</table>
+<p></p>
+<p></p>
+<p>NAVIGATION</p>
+<p></p>
+<table border="2">
+  <tr>
+    <td>URL:</td>
+    <td>Description</td>
+  </tr>
+  <tr>
+    <td>http://5.135.158.225:8080/help</td>
+    <td>Help page</td>
+  </tr>
+  <tr>
+    <td>http://5.135.158.225:8080/todo</td>
+    <td>List all todo tasks</td>
+  </tr>
+  <tr>
+    <td>http://5.135.158.225:8080/new</td>
+    <td>New todo task</td>
+  </tr>
+  <tr>
+    <td>http://5.135.158.225:8080/edit/1/</td>
+    <td>Edit task #1</td>
+  </tr>
+  <tr>
+    <td>http://5.135.158.225:8080/item1/</td>
+    <td>Show task #1</td>
+  </tr>
+  <tr>
+    <td>http://5.135.158.225:8080/json1/</td>
+    <td>JSON output for task #1</td>
+  </tr>
+</table>
+
+
+
+<p>Cubic Floex Web Services (c) 1984 - 2017.</p>
+<p>Powered by Bottle, Python, SQLite3.</p>
+
+
+

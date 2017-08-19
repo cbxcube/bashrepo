@@ -1,0 +1,457 @@
+#!/bin/sh
+
+# ---------------------
+# VIE installer wrapper
+
+typeset RELFILE=/etc/redhat-release
+typeset HNAME=$(hostname)
+HNAME=${HNAME%%.*}
+
+typeset RHEL='' ARGS='' 
+typeset SYSTEMS='' CLUSNAME='' CLUSID=''
+
+typeset INSTDIR=/var/tmp/VINST
+typeset PINSTDIR=$INSTDIR/product
+
+typeset RINSTALL=$INSTDIR/response_install
+typeset RUPGRADE=$INSTDIR/response_upgrade
+typeset RCONFIGURE=$INSTDIR/response_configure
+
+typeset PINSTALLER='' SINSTALLER=/opt/VRTS/install/installer
+
+typeset PACKAGES='libstdc++.i686 libacl.i686 libgcc.i686 systemd-libs.i686 xz-libs.i686 pcre.i686'
+typeset STEP=false
+
+typeset PROFILE=/root/.bash_profile
+
+# -----------------------------
+# package definition & location
+typeset CLOC=linuximaging/veritas/VIE/7.0
+
+# base package - vanilla release + latest installer patch
+typeset VIE70BASE_RHEL6=$CLOC/Veritas_InfoScale_7.0_RHEL.tar.gz
+typeset VIE70BASE_RHEL6_CPI=$CLOC/patches/cpi-rhel6_x86_64-Patch-7.0.0.100.tar.gz
+
+typeset VIE70BASE_RHEL7=$CLOC/Veritas_InfoScale_7.0_RHEL.tar.gz
+#typeset VIE70BASE_RHEL7=$CLOC/Veritas_InfoScale_7.0_RHEL.tar.gz
+
+# maintenance release 1 + latest installer patch
+typeset VIE70MR1_RHEL6=$CLOC/patches/infoscale-rhel6_x86_64-MR-7.0.1.tar.gz
+typeset VIE70MR1_RHEL6_CPI=$CLOC/patches/cpi-Patch-7.0.1.400.tar.gz
+
+typeset VIE70MR1_RHEL7=$CLOC/patches/infoscale-rhel7_x86_64-MR-7.0.1.tar.gz
+typeset VIE70MR1_RHEL7_CPI=$CLOC/patches/cpi-Patch-7.0.1.400.tar.gz
+
+# manually installable patches
+typeset VIE70LLT1_RHEL7=$CLOC/patches/llt-rhel7.2_x86_64-Patch-7.0.1.100.tar.gz
+typeset VIE70VCS1_RHEL7=$CLOC/patches/vcs-rhel7_x86_64-Patch-7.0.1.100.tar.gz
+typeset VIE70VCSEA1_RHEL7=$CLOC/patches/vcsea-rhel7_x86_64-Patch-7.0.1.100.tar.gz
+
+# ASLs
+typeset VIE70ASLAPM=$CLOC/aslapm/VRTSaslapm_Linux_7.0.1.100.tar.gz
+
+
+# ---------------------------
+# usage()
+usage()
+{
+    typeset ret=$1 scr=${0##*/}
+
+    cat <<EOF
+Usage: 
+  # $scr -s <syslist> -c <clusname> -i <clusid> [-a]
+
+Options:
+  -s ... comma separated list of cluster nodes together with heartbeat link specification
+         separated by colon; first two heartbeat links are high priority private heartbeat
+         links, any other subsequent is low-priority over public network. 
+  -c ... cluster name, i.e. testclus
+  -i ... unique cluster ID (for LLT broadcast) in range 0-65535
+  -a ... interactive procedure
+
+Example:
+  # $scr -s lctcve0043:eth0:eth1:eth2,lctcve0044:eth0:eth1:eth2 -c tclus -i 20000 -a
+
+
+EOF
+    exit $ret
+} # usage()
+
+# ---------------------------
+# step()
+step()
+{
+    typeset cmd=$1 msg=$2
+    typeset ans ret=0
+
+    if $STEP; then
+        echo "=== msg: '$msg' ==="
+        echo "=== cmd: '$cmd' ===" 
+        echo "s - skip, Enter - perform"
+        
+        while true; do
+            read ans
+            case $ans in
+                '') echo "Executed"; eval "$cmd"; ret=$?; break ;;
+                s) echo "Skipped"; break ;;
+            esac
+        done
+    else
+        echo "cmd: $cmd"
+        eval "$cmd"; ret=$?
+    fi
+
+    return $ret
+} # step()
+
+# parse commandline
+
+while getopts as:c:i: ARGS 2>/dev/null; do
+    case $ARGS in
+        a) STEP=true ;;
+        s) SYSLIST=$(echo $OPTARG | tr ',' ' ') ;;
+        c) CLUSNAME=$OPTARG ;;
+        i) CLUSID=$OPTARG ;;
+        *) usage 1 ;;
+    esac
+done
+
+# generate system list, strip netif and domain
+for SYS in $SYSLIST; do
+    SYS=${SYS%%:*}
+    SYS=${SYS%%\.*}
+    SYSTEMS="$SYSTEMS $SYS"
+done
+
+# strip blanks
+SYSTEMS=$(echo $SYSTEMS)
+
+# setup list withj local system last, for ssh cleanup
+SET_LOCAL=false
+for SYS in $SYSTEMS; do
+    [ $SYS = $HNAME ] && { SET_LOCAL=true; continue; }
+    SYSTEMS_LOCAL_LAST="$SYSTEMS_LOCAL_LAST $SYS"
+done
+$SET_LOCAL && SYSTEMS_LOCAL_LAST="$SYSTEMS_LOCAL_LAST $HNAME"
+
+# determine RHEL release
+grep ' 6\.[0-9]' $RELFILE && RHEL=6
+grep ' 7\.[0-9]' $RELFILE && RHEL=7
+[ -z "$RHEL" ] && {
+    echo "Unsupported system"
+    exit 1
+}
+
+cat <<EOF
+== Summary ==
+
+RHEL${RHEL} detected.
+SYSTEMS : $SYSTEMS
+CLUSNAME: $CLUSNAME
+CLUSID  : $CLUSID
+EOF
+
+typeset SSH='ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'
+
+# test connectivity
+for SYS in $SYSTEMS; do
+    step "$SSH $SYS 'true'" "Test connectivity with $SYS" || {
+        echo "Could not connect to $SYS, please verify/setup connectivity among cluster nodes"
+    } 
+done
+
+# Create install dir
+step "mkdir -p $INSTDIR" "Create $INSTDIR"
+
+# ----------------------------------------
+# generate response files
+
+# generate install file
+cat <<EOF > $RINSTALL
+our %CFG;
+
+\$CFG{accepteula}=1;
+\$CFG{keys}{keyless}=[ qw(ENTERPRISE) ];
+\$CFG{opt}{install}=1;
+\$CFG{prod}="ENTERPRISE70";
+\$CFG{systems}=[ qw($SYSTEMS) ];
+
+1;
+EOF
+
+# generate upgrade file
+cat <<EOF > $RUPGRADE
+our %CFG;
+
+\$CFG{opt}{patchupgrade}=1;
+\$CFG{prod}="ENTERPRISE70";
+\$CFG{systems}=[ qw($SYSTEMS) ];
+
+1;
+EOF
+
+# generate configuration file
+cat <<EOF > $RCONFIGURE
+our %CFG;
+
+\$CFG{accepteula}=1;
+\$CFG{activecomponent}=[ qw(SFHA70) ];
+\$CFG{config_majority_based_fencing}=1;
+\$CFG{opt}{configure}=1;
+\$CFG{fencing_option}=7;
+\$CFG{fencingenabled}=1;
+\$CFG{opt}{gco}=0;
+\$CFG{opt}{vr}=0;
+\$CFG{prod}="ENTERPRISE70";
+\$CFG{systems}=[ qw($SYSTEMS) ];
+\$CFG{lltoverudp}="0";
+\$CFG{prod}="ENTERPRISE70";
+\$CFG{vcs_allowcomms}=1;
+\$CFG{vcs_clusterid}=$CLUSID;
+\$CFG{vcs_clustername}="$CLUSNAME";
+\$CFG{vcs_userenpw}=[ qw(GPQiPKpMQlQQoYQkPN) ];
+\$CFG{vcs_username}=[ qw(admin) ];
+\$CFG{vcs_userpriv}=[ qw(Administrators) ];
+EOF
+
+# generate NIC list
+for SYS in $SYSLIST; do
+    SYSTEM=${SYS%%:*}
+    NICS="${SYS#*:}"
+    cnt=0
+    for NIC in $(echo $NICS | tr ':' ' '); do
+        (( cnt += 1 ))
+        (( cnt <= 2 )) && {
+            echo "\$CFG{vcs_lltlink${cnt}}{$SYSTEM}=\"$NIC\";" >> $RCONFIGURE
+        } || {
+            echo "\$CFG{vcs_lltlinklowpri$((cnt-2))}{$SYSTEM}=\"$NIC\";" >> $RCONFIGURE
+        }
+    done
+done
+cat <<EOF >> $RCONFIGURE
+
+1;
+EOF
+
+# response files generated
+# --------------------------------
+
+# install packages
+for SYS in $SYSTEMS; do
+    step "$SSH $SYS 'yum -y --enablerepo Merck-Repo install ${PACKAGES}'" "Install package prerequisites."
+done
+
+# check for free space
+# TBI
+
+# --------------------
+# install base package
+
+# -----------------------------
+# install_product()
+install_product()
+{
+    typeset source=$1 pinstaller_name=$2 response=$3 cpi_patch=$4
+
+    typeset pinstaller='' pinstdir= cpi_patchcmd=''
+    typeset file=${source##*/} cpi_file=${cpi_patch##*/}
+    typeset wdir=$(pwd)
+
+    # create product directory + installer patch dir and step in
+    step "mkdir -p ${PINSTDIR}/CPI && cd $PINSTDIR" "Create product directory and step in"
+
+    step "pwd" "check the pwd"
+
+    # download package
+    step "wget $source" "Download installation package" 
+
+    # unpack package
+    step "tar xfz $file" "Unpack installation package"
+
+    [ -n "$cpi_patch" ] && { 
+        # step in patch dir
+        step "cd ${PINSTDIR}/CPI" "Step in cpi patch dir"
+        
+        # download installer patch if any
+        step "wget $cpi_patch" "Download installer patch"
+
+        # unpack installer patch
+        step "tar xfz $cpi_file"
+    
+        # find installer patch
+        pinstaller_patch=$(find ${PINSTDIR}/CPI -type f -name 'CPI*.pl')
+
+        # patch command
+        cpi_patchcmd="-require $pinstaller_patch"
+    } 
+
+    # find installer
+    pinstaller=$(find $PINSTDIR -name $pinstaller_name | grep rhel${RHEL})
+
+    # install
+    step "$pinstaller -responsefile $response $cpi_patchcmd" "Install/upgrade the package"
+
+    # cleanup product directory
+    cd $wdir
+    step "rm -fr $PINSTDIR" "Remove $PINSTDIR"
+
+} # install_product()
+
+# -----------------------------
+# install_rpms()
+install_rpms()
+{
+    typeset source=$1 
+    typeset file=${source##*/} system=''
+
+    for system in $SYSTEMS; do
+        # create product directory
+        step "$SSH $system 'mkdir -p $PINSTDIR' 2>/dev/null"
+
+        # download
+        step "$SSH $system 'cd $PINSTDIR && wget $source' 2>/dev/null" "Download installation package"
+
+        # unpack
+        step "$SSH $system 'cd $PINSTDIR && tar xfz $file' 2>/dev/null" "Unpack installation package"
+
+        # search for rpms
+        RPMDIR=$($SSH $system "find $PINSTDIR -name 'rpms' -type d" 2>/dev/null)
+        RPMLIST=$($SSH $system "ls $RPMDIR/*rpm" 2>/dev/null)
+
+        # install them
+        step "$SSH $system 'rpm -Uvh $RPMLIST' 2>/dev/null" "install RPMS"
+
+        # cleanup product dir
+        step "$SSH $system 'rm -fr $PINSTDIR' 2>/dev/null" "Remove $PINSTDIR"
+    done
+
+} # install_rpms()
+
+
+# -----------------------------
+# install_aslapm()
+install_aslapm()
+{
+    typeset source=$1 
+    typeset file=${source##*/} system=''
+
+    for system in $SYSTEMS; do
+        # create product directory
+        step "$SSH $system 'mkdir -p $PINSTDIR' 2>/dev/null"
+
+        # download
+        step "$SSH $system 'cd $PINSTDIR && wget $source' 2>/dev/null" "Download installation package"
+
+        # unpack
+        step "$SSH $system 'cd $PINSTDIR && tar xfz $file' 2>/dev/null" "Unpack installation package"
+
+        # search for rpms for RHEL
+        RPMLIST=$($SSH $system "ls ${PINSTDIR}/RHEL${RHEL}/*.rpm" 2>/dev/null)
+
+        # install them
+        step "$SSH $system 'rpm -Uvh $RPMLIST' 2>/dev/null" "install RPMS"
+
+        # cleanup product dir
+        step "$SSH $system 'rm -fr $PINSTDIR' 2>/dev/null" "Remove $PINSTDIR"
+    done
+
+} # install_aslapm()
+
+
+# ---------------------------------------------------------------------
+# install base & patch
+case $RHEL in
+    6) install_product $VIE70BASE_RHEL6 installer $RINSTALL $VIE70BASE_RHEL6_CPI
+       install_product $VIE70MR1_RHEL6 installmr $RUPGRADE $VIE70MR1_RHEL6_CPI
+       ;;
+
+    7) install_product $VIE70BASE_RHEL7 installer $RINSTALL
+       install_product $VIE70MR1_RHEL7 installmr $RUPGRADE $VIE70MR1_RHEL7_CPI 
+       install_rpms $VIE70LLT1_RHEL7
+       install_rpms $VIE70VCS1_RHEL7
+       install_rpms $VIE70VCSEA1_RHEL7
+       ;;
+
+    *) exit 1 
+       ;;
+esac
+       
+install_aslapm $VIE70ASLAPM
+
+# -------------------
+# configure
+step "$SINSTALLER -responsefile $RCONFIGURE" "Configure the package"
+
+# Command for ed - shell variables have to be back-slashed, due to the
+# expansion issues later in the command sequence   
+edcmd='
+$ a
+# ==Veritas begin==
+PATH=\$PATH:/opt/VRTS/bin:/opt/VRTSvcs/bin
+MANPATH=\$MANPATH:/opt/VRTS/man
+
+export PATH MANPATH
+# ==Veritas end==
+.
+1,$ l
+w
+q'
+
+# command updating the bash profile. We must have double quotes here
+# and these have to be back-slashed due to further shell expansion
+cmd="grep \"# ==Veritas\" $PROFILE && { 
+    echo 'Profile already updated'
+} || { 
+    echo \"$edcmd\" | ed $PROFILE
+}"
+
+# update root bash_profile with paths
+for SYS in $SYSTEMS; do
+    step "$SSH $SYS '$cmd'" "Edit root profile"
+done
+
+# ---------------------------------------
+ISSUE=/etc/issue
+ISSUE_NET=/etc/issue.net
+MOTD=/etc/motd
+
+edcmd='
+/PROSECUTION/a
+
+# ----------------------------------------------
+# This system is part of HA Cluster
+# Cluster nodes : '$(echo $SYSTEMS | sed 's/\([0-9]\) /\1, /g')'
+# ----------------------------------------------
+.
+1,$ l
+w
+q'
+
+# command updating the login banner. We must have double quotes here
+# and these have to be back-slashed due to further shell expansion
+cmd1="grep \"HA Cluster\" $ISSUE && { 
+    echo 'Profile already updated'
+} || { 
+    echo \"$edcmd\" | ed $ISSUE
+}"
+cmd2="grep \"HA Cluster\" $ISSUE_NET && { 
+    echo 'Profile already updated'
+} || { 
+    echo \"$edcmd\" | ed $ISSUE_NET
+}"
+cmd3="grep \"HA Cluster\" $MOTD && { 
+    echo 'Profile already updated'
+} || { 
+    echo \"$edcmd\" | ed $MOTD
+}"
+
+for SYS in $SYSTEMS; do
+    step "$SSH $SYS '$cmd1'" "Edit login banner"
+    step "$SSH $SYS '$cmd2'" "Edit login banner"
+    step "$SSH $SYS '$cmd3'" "Edit login banner"
+done
+
+
+# final local cleanup
+step "rm -fr $INSTDIR" "Remove $INSTDIR"
+

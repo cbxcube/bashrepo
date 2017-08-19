@@ -1,0 +1,66 @@
+
+GRPS='dba       200
+sapsys  289600
+sapinst 289604
+oper    289605
+vk1shm  289606
+oinstall        201
+asmoper 202
+cimsrvr 105'
+
+USERS='vk1adm   297934  /bin/csh        sapinst(GID: 289604), oper(289605), dba (200)   sapsys (GID:289600)
+oravk1  297935  /bin/csh        sapinst(GID: 289604), oper(289605)      dba (GID:200)
+smdadm  297944  /bin/csh        sapinst(GID: 289604), oper(289605), dba (200)   sapsys (GID:289600)
+sapadm  297948  /bin/csh        sapinst(GID: 289604), oper(289605), dba (200)   sapsys (GID:289600)
+tibcoftp        297670  /usr/bin/false  NA      sapsys (GID:289600)
+xiftp   297671  /usr/bin/false  NA      sapsys (GID:289600)
+infaftp 297672  /usr/bin/false  NA      sapsys (GID:289600)
+esrcftp 297673  /usr/bin/false  NA      sapsys (GID:289600)
+axwayftp        297967  /bin/csh        NA      sapsys (GID:289600)
+bobjftp 297968  /bin/csh        NA      sapsys (GID:289600)
+grcftp  297674  /usr/bin/false  NA      sapsys (GID:289600)
+glfftp  297675  /usr/bin/false  NA      sapsys (GID:289600)
+liaisftp        297676  /usr/bin/false  NA      sapsys(GID:289600)
+esrcdataftp     297677  /bin/csh        NA      cimsrvr (GID:105)
+oraepm  45747   /bin/sh NA      200(dba)'
+
+echo "##########################"
+
+echo "$GRPS" | while read line; do
+
+    GROUP=$(echo "$line" | cut -d"      " -f1)
+    GROUPID=$(echo "$line" | cut -d"    " -f2)
+
+    echo "groupadd -g $GROUPID $GROUP"
+
+done
+
+echo "##########################"
+
+echo "$USERS" | while read line; do
+
+    USER=$(echo "$line" | cut -d"       " -f1)
+    USERID=$(echo "$line" | cut -d"     " -f2)
+    SHELL=$(echo "$line" | cut -d"      " -f3)
+    AGROUPS=$(echo "$line" | cut -d"    " -f4 | sed -e 's/([a-zA-Z0-9: ]*)//g' -e 's/ *//g')
+    [ "$AGROUPS" == "NA" ] && { AGROUPS=""; } || { AGROUPS="-G $AGROUPS"; }
+    PGROUP=$(echo "$line" | cut -d"     " -f5 | sed -e 's/([a-zA-Z0-9: ]*)//g' -e 's/ *//g')
+
+    echo "useradd -m -u $USERID -g $PGROUP $AGROUPS -s $SHELL $USER"
+
+done
+
+echo "##########################"
+
+echo "$USERS" | while read line; do
+
+    USER=$(echo "$line" | cut -d"       " -f1)
+    USERID=$(echo "$line" | cut -d"     " -f2)
+    SHELL=$(echo "$line" | cut -d"      " -f3)
+    AGROUPS=$(echo "$line" | cut -d"    " -f4 | sed -e 's/([a-zA-Z0-9: ]*)//g' -e 's/ *//g')
+    [ "$AGROUPS" == "NA" ] && { AGROUPS=""; } || { AGROUPS="-G $AGROUPS"; }
+    PGROUP=$(echo "$line" | cut -d"     " -f5 | sed -e 's/([a-zA-Z0-9: ]*)//g' -e 's/ *//g')
+
+    echo "id $USER"
+
+done

@@ -1,0 +1,196 @@
+#!/bin/bash
+
+# JSON Placeholder data :
+# TUTORIAL : https://jsonplaceholder.typicode.com/
+
+
+## SPLASH SCREEN : 
+splashscr() {
+clear
+cat << "EOF"
+                  oo                                                      
+                                                                          
+.d8888b. 88d888b. dP    88d8b.d8b. 88d888b. .d8888b.    88d888b. dP    dP 
+88'  `88 88'  `88 88    88'`88'`88 88'  `88 88'  `88    88'  `88 88    88 
+88.  .88 88.  .88 88    88  88  88 88    88 88.  .88 dP 88.  .88 88.  .88 
+`88888P8 88Y888P' dP    dP  dP  dP dP    dP `8888P88 88 88Y888P' `8888P88 
+         88                                      .88    88            .88 
+         dP                                  d8888P     dP        d8888P  
+EOF
+sleep 1 
+}
+
+## Navigation :
+urlroot='https://jsonplaceholder.typicode.com'
+# GET
+allposts=$urlroot/posts								## alternative in testing as a function : 
+getpost=$urlroot/posts/$id
+getpcom=$urlroot/posts/$id/comments
+getpcid=$urlroot/comments?postId=$id
+getuser=$urlroot/posts?userId=$id
+allcomments=$urlroot/comments
+allalbums=$urlroot/albums
+allphotos=$urlroot/photos
+alltodos=$urlroot/todos
+allusers=$urlroot/users
+# POST 
+sendpost=$urlroot/posts
+# PUT
+putpost=$urlroot/posts/$id
+# PATCH 
+patchpost=$urlroot/posts/$id
+# DELETE
+delpost=$urlroot/posts/$id
+
+
+# DEBUG :
+echo "DEBUG1 : REST CALLS -  print URL results :"
+echo "$allposts"
+echo "$allcommens"
+echo "$allalbums"
+echo "$allphotos"
+echo "$alltodos"
+echo "$allusers"
+
+## FUNCTIONS :
+
+
+pause(){
+  read -p "To continue press [Enter] button ..." fackEnterKey
+}
+
+
+## PREPARE FINAL URL for ani REST call
+#
+#allpostsurl() {
+#	geturlpath=$allposts
+#	#echo "$(tput setaf 1)$geturlpath"
+#	#echo "$(tput setaf 3) * * * * $(tput setab 7) * * * * $(tput sgr 0)"
+#	echo "$geturlpath"
+#	#echo "$(tput setaf 3) * * * * $(tput setab 7) * * * * $(tput sgr 0)"
+#}
+#
+
+## REST CALL FUNCTIONS : 
+
+apiget() {
+	curl -s -X GET $geturlpath
+}
+
+apipost() {
+	curl -s -X POST $geturlpath
+}
+
+apiput() {
+	curl -s -X PUT $geturlpath
+}
+
+apipatch() {
+	curl -s -X PATCH $geturlpath
+}
+
+apidelete() {
+	curl -s -X DELETE $geturlpath
+}
+
+
+
+
+
+# GET ALLs :
+getallposts() {
+	splashscr
+	echo ""
+    #echo "Putting together URL and appropriate REST call "
+    geturlpath=$allposts
+    #echo "Fetching from URL :   $geturlpath"
+	#echo ""
+    echo "       Fetching from URL : $(tput setaf 1)$geturlpath"
+	echo ""
+	#echo "$geturlpath"
+    #echo "$(tput setaf 1)$geturlpath"
+	#echo ""
+	#echo "Command used for REST call : "$apiget" $geturlpath"
+	#echo ""
+	echo "$(tput setab 7)-----------------------------------------------------$(tput sgr 0)"
+	#echo "-----------------------------------------------------"
+	#echo "Getting URL : "
+	#echo "combining url and appropriate rest call "
+	#echo "$(tput setaf 2)$geturlpath"
+	#echo "$(tput setab 7)---------------------------------------$(tput sgr 0)"
+	#echo $geturlpath
+	#echo "apiget1...degub"	
+	apiget $geturlpath
+	#echo "apiget2...debug"
+	pause
+}
+
+getallcomments() {
+	splashscr
+    geturlpath=$getallcomments
+    echo "Getting URL : "
+    echo "$(tput setaf 2)$geturlpath"
+    echo "$(tput setab 7)---------------------------------------$(tput sgr 0)"
+    echo $geturlpath
+    pause
+}
+
+#
+# . . . continue all sumary
+
+
+
+#### MENU RUN : 
+printmenu() {
+    echo  "~~~~~~~~~~~~~~~~~~~~~"    
+	echo  "$(tput setaf 2) M A I N - M E N U"
+    echo  "~~~~~~~~~~~~~~~~~~~~~"
+	echo  "1) apiallget"
+	echo  "2) apiallpost"
+	echo  "3) apiallusers"
+	echo  "3) apiput"
+	echo  "4) apipatch"
+	echo  "5) apidelete"
+	echo  ""
+	echo  "x) exit"	
+	echo  ""
+	echo "$(tput setaf 1)The more quieter you become...  $(tput setaf 4)The more you are able to hear!$(tput sgr 0)"
+	echo ""
+}
+
+readchoice() {
+    local choice
+    read -p "Enter choice [ 1-5, x ] " choice
+    case $choice in
+        1) getallposts ;;
+		2) getallcomments ;;
+		3) apiget $allalbums ;;
+		4) apiget $allphotos ;;
+		5) apiget $alltodos ;;
+		6) apiget $allusers ;;
+		7) apiget $allusers ;;
+		
+        x) echo "     Bye !" && exit 0 ;;
+        *) echo -e "${RED}Error...${STD}" && sleep 2
+    esac
+}
+
+
+
+# PROGRAM RUN : 
+
+while true
+do 
+	splashscr
+	printmenu
+	readchoice
+done
+	
+# Versioning:
+# 12-30-2016 - Initial version to connect to servers
+
+##   NEXT IMPLEMENTATION Parking lot :
+# 
+# - API calls with specific ID
+	# - json2table - better parse output 
+
