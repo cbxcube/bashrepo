@@ -1,7 +1,7 @@
 #!/bin/bash
 # put on local machine
 
-HOST=5.135.158.225
+HOST=xxxxxx
 
 crlock() {
 touch .startlock > /dev/null
