@@ -4,6 +4,7 @@
 #  
 # Remote Application 03 
 # Should be started  under local system user
+# This script "remoteapp3.sh@kimsufi" should be initialized only from remote system using "manageapp3.sh@loclahost" 
 
 # VARIABLES
 HOME="/home/$(echo $USER)/scripts/"
@@ -37,7 +38,7 @@ appl3init() {
 	debugres
 	echo "$app3pid" > $LOCK
 	debugres
-	printf " APPL3INIT: - - - APPL3 RUNNING as $app3pid" >> $LOG
+	printf "\nAPPL3INIT: - - - APPL3 RUNNING as $app3pid\n" >> $LOG
 } 
 
 appl3kill() {
