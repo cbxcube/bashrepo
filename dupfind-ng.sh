@@ -20,7 +20,7 @@ get_file_list() {
 }
 
 get_md5sum() {
-	for i in $(cat $listfiles); do md5sum $i; done > $listmd5cs
+	for i in $(cat $listfiles); do  md5sum "$i"; done > $listmd5cs
 }
 
 get_dupnum() {
@@ -28,14 +28,14 @@ get_dupnum() {
 }
 
 get_duplist() {
-	for i in $(cat $listdupnr); do grep $i $listmd5cs >> $listdupls; done
+	for i in $(cat $listdupnr); do grep "$i" $listmd5cs >> $listdupls; done
 }
 
 get_duplsout() {
 	printf "================================================================\n"
 	printf "   List of identified duplicates in $folder\n"
 	printf "================================================================\n"
-	for i in $(cat $listdupnr|awk '{print $2}'); do grep $i $listmd5cs; done |awk '{print $2}' > $listdupls
+	for i in $(cat $listdupnr|awk '{print $2}'); do grep "$i" $listmd5cs; done |awk '{print $2}' > $listdupls
 	for i in $(cat $listdupls); do ls -lh $i; done;
 }
 
@@ -50,7 +50,6 @@ get_md5sum
 get_dupnum
 get_duplist
 get_duplsout
-
 
 printf "================================================================\n"
 	
