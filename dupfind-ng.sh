@@ -16,11 +16,12 @@ listdupls=/tmp/listdupls
 
 get_file_list() {
 	#cd $folder
-	find $folder -type f 2>/dev/null |sort > $listfiles
+	find $folder -type f -print0 |xargs -0 -i echo "{}"|sort  > $listfiles
 }
 
 get_md5sum() {
-	for i in $(cat $listfiles); do  md5sum "$i"; done > $listmd5cs
+	#for i in "$(cat $listfiles)"; do  md5sum "$i"; done > $listmd5cs
+	cat $listfiles |while read line; do md5sum "$line"; done > $listmd5cs
 }
 
 get_dupnum() {
