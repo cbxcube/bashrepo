@@ -36,8 +36,10 @@ get_duplsout() {
 	printf "================================================================\n"
 	printf "   List of identified duplicates in $folder\n"
 	printf "================================================================\n"
-	for i in $(cat $listdupnr|awk '{print $2}'); do grep "$i" $listmd5cs; done |awk '{print $2}' > $listdupls
-	for i in $(cat $listdupls); do ls -lh $i; done;
+	#for i in $(cat $listdupnr|awk '{print $2}'); do grep "$i" $listmd5cs; done |awk '{print $2}' > $listdupls
+	#cat $listdupnr|awk '{print $2}'|while read line; do grep "$i" $listmd5cs; done |awk '{print $2}' > $listdupls
+	awk '{print $2}' $listdupnr |while read line; do grep "$line" $listmd5cs; done |awk '{print $2}' > $listdupls
+	for i in "$(cat $listdupls)"; do ls -lh "$i"; done;
 }
 
 cleanup() {
@@ -63,6 +65,6 @@ else
 fi
 
 # Clean temporary files
-cleanup
+#cleanup
 
 exit 0
